@@ -1,14 +1,26 @@
 /**
- * Kult Tarot Reader - Core Application
+ * Kult Tarot Reader - Core Application  v1.01
  *
- * Image resolution order:
- *  1. Search each KULT_TAROT_SOURCES compendium pack for a Cards stack,
- *     then match card faces by name.
- *  2. Search game.cards for any stack whose name contains "kult" or "tarot".
- *  3. Fall back to the static k4lt-assets path from tarot-data.js.
+ * Foundry v13 moved Application and Dialog to foundry.appv1.
+ * This file uses foundry.appv1.applications.Dialog and
+ * foundry.appv1.applications.Application (with _renderHTML override).
+ *
+ * Chat commands:
+ *   /tarot                — opens the reading selector dialog
+ *   /tarot individual     — draws an Individual reading immediately
+ *   /tarot location
+ *   /tarot cult
+ *   /tarot plot
+ *   /tarot creature
+ *   /tarot artifact
+ *   /tarot single
  */
 
-// ── Utility: shuffle a copy of the deck ──────────────────────────
+// ── Resolve correct Application / Dialog base classes for v13 ────
+const _Application = foundry?.appv1?.applications?.Application ?? Application;
+const _Dialog      = foundry?.appv1?.applications?.Dialog      ?? Dialog;
+
+// ── Fisher-Yates shuffle ─────────────────────────────────────────
 function shuffleDeck(deck) {
   const copy = [...deck];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -18,35 +30,27 @@ function shuffleDeck(deck) {
   return copy;
 }
 
-// ── Utility: resolve real card image from Foundry data ───────────
-// Builds a name→img map once from whatever tarot pack is available,
-// then caches it on KultTarot for subsequent calls.
+// ── Build name→img map from the tarot compendium ─────────────────
 async function buildCardImageMap() {
   if (KultTarot._imageMap) return KultTarot._imageMap;
-
   const map = {};
 
-  // 1. Try each known compendium source
   for (const { moduleId, packName } of KultTarot.TAROT_SOURCES) {
     const packKey = `${moduleId}.${packName}`;
-    const pack = game.packs.get(packKey);
+    const pack    = game.packs.get(packKey);
     if (!pack) continue;
 
     try {
       const index = await pack.getIndex();
-      // A Cards compendium may have a single entry (the deck) or individual cards
       for (const entry of index) {
         const doc = await pack.getDocument(entry._id);
         if (!doc) continue;
-
-        // If it's a Cards stack (deck), iterate its individual cards
-        if (doc.cards) {
+        if (doc.cards?.size > 0) {
           for (const card of doc.cards) {
             const img = card.faces?.[0]?.img ?? card.img;
             if (img) map[card.name?.toLowerCase()] = img;
           }
         } else {
-          // It's an individual card document
           const img = doc.faces?.[0]?.img ?? doc.img;
           if (img) map[doc.name?.toLowerCase()] = img;
         }
@@ -55,13 +59,14 @@ async function buildCardImageMap() {
       console.warn(`Kult Tarot Reader | Could not read pack ${packKey}:`, err);
     }
 
-    if (Object.keys(map).length > 0) break; // found images, stop searching
+    if (Object.keys(map).length > 0) break;
   }
 
-  // 2. Fall back to any Cards stack in the world named "kult" or "tarot"
+  // Fallback: world Cards stacks
   if (Object.keys(map).length === 0) {
     const stack = game.cards?.find(c =>
-      c.name?.toLowerCase().includes("kult") || c.name?.toLowerCase().includes("tarot")
+      c.name?.toLowerCase().includes("kult") ||
+      c.name?.toLowerCase().includes("tarot")
     );
     if (stack) {
       for (const card of stack.cards ?? []) {
@@ -72,66 +77,63 @@ async function buildCardImageMap() {
   }
 
   KultTarot._imageMap = map;
-  console.log(`Kult Tarot Reader | Card image map built with ${Object.keys(map).length} entries.`);
+  console.log(`Kult Tarot Reader | Card image map: ${Object.keys(map).length} entries found.`);
   return map;
 }
 
 async function resolveCardImage(card) {
   const map = await buildCardImageMap();
-  // Try exact name match first, then partial match
   return (
     map[card.name.toLowerCase()] ??
     Object.entries(map).find(([k]) => k.includes(card.name.toLowerCase()))?.[1] ??
-    card.img // static fallback from tarot-data.js
+    card.img
   );
 }
 
-// ── Dialog: reading type selector ────────────────────────────────
-class KultTarotSelectorDialog extends Dialog {
+// ─────────────────────────────────────────────────────────────────
+// SELECTOR DIALOG
+// ─────────────────────────────────────────────────────────────────
+class KultTarotSelectorDialog extends _Dialog {
   constructor() {
-    const templates = KultTarot.TEMPLATES;
-
-    const options = Object.entries(templates).map(([key, tmpl]) => `
-      <div class="kult-reading-option">
-        <input type="radio" id="reading-${key}" name="readingType" value="${key}"
-               ${key === "individual" ? "checked" : ""}>
-        <label for="reading-${key}">
-          <strong>${tmpl.name}</strong>
-          <span class="kult-reading-desc">${tmpl.description}</span>
-        </label>
-      </div>
-    `).join("");
-
-    const content = `
-      <div class="kult-tarot-selector">
-        <div class="kult-tarot-header">
-          <h2>Kult Tarot Reading</h2>
-          <p>Select the type of reading you wish to perform.</p>
-        </div>
-        <div class="kult-reading-options">${options}</div>
-        <div class="kult-question-box">
-          <label for="kult-question"><strong>Your Question (optional):</strong></label>
-          <textarea id="kult-question"
-            placeholder="Focus your mind. What do you seek to know?" rows="2"></textarea>
-        </div>
-        <div class="kult-post-to-chat">
-          <input type="checkbox" id="kult-post-chat" checked>
-          <label for="kult-post-chat">Post reading summary to chat</label>
-        </div>
-      </div>
-    `;
+    const options = Object.entries(KultTarot.TEMPLATES)
+      .map(([key, tmpl]) => `
+        <div class="kult-reading-option">
+          <input type="radio" id="reading-${key}" name="readingType"
+                 value="${key}" ${key === "individual" ? "checked" : ""}>
+          <label for="reading-${key}">
+            <strong>${tmpl.name}</strong>
+            <span class="kult-reading-desc">${tmpl.description}</span>
+          </label>
+        </div>`)
+      .join("");
 
     super({
       title: "Kult Tarot — Begin Reading",
-      content,
+      content: `
+        <div class="kult-tarot-selector">
+          <div class="kult-tarot-header">
+            <h2>Kult Tarot Reading</h2>
+            <p>Select the type of reading you wish to perform.</p>
+          </div>
+          <div class="kult-reading-options">${options}</div>
+          <div class="kult-question-box">
+            <label for="kult-question"><strong>Your Question (optional):</strong></label>
+            <textarea id="kult-question"
+              placeholder="Focus your mind. What do you seek to know?" rows="2"></textarea>
+          </div>
+          <div class="kult-post-to-chat">
+            <input type="checkbox" id="kult-post-chat" checked>
+            <label for="kult-post-chat">Post reading summary to chat</label>
+          </div>
+        </div>`,
       buttons: {
         draw: {
-          icon: '<i class="fas fa-hat-wizard"></i>',
+          icon:  '<i class="fas fa-hat-wizard"></i>',
           label: "Draw Cards",
           callback: (html) => {
-            const type      = html.find('input[name="readingType"]:checked').val();
-            const question  = html.find("#kult-question").val().trim();
-            const postChat  = html.find("#kult-post-chat").is(":checked");
+            const type     = html.find('input[name="readingType"]:checked').val();
+            const question = html.find("#kult-question").val().trim();
+            const postChat = html.find("#kult-post-chat").is(":checked");
             KultTarotReader.performReading(type, question, postChat);
           }
         },
@@ -142,55 +144,46 @@ class KultTarotSelectorDialog extends Dialog {
   }
 }
 
-// ── Application: reading result window ───────────────────────────
-class KultTarotReadingApp extends Application {
+// ─────────────────────────────────────────────────────────────────
+// READING APPLICATION
+// ─────────────────────────────────────────────────────────────────
+class KultTarotReadingApp extends _Application {
   constructor(readingType, drawnCards, question, postToChat) {
-    super();
-    this.readingType   = readingType;
-    this.drawnCards    = drawnCards;   // [{ card, position }]
-    this.question      = question;
-    this.postToChat    = postToChat;
-    this.tmpl          = KultTarot.TEMPLATES[readingType];
-    this.flipped       = new Set();
-    this._resolvedImgs = null;         // cached after first render
-  }
-
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id:        "kult-tarot-reading",
+    super({
       title:     "Kult Tarot — Reading",
+      id:        "kult-tarot-reading",
       width:     920,
       height:    "auto",
       resizable: true,
       classes:   ["kult-tarot-reading-window"],
     });
+    this.readingType   = readingType;
+    this.drawnCards    = drawnCards;
+    this.question      = question;
+    this.postToChat    = postToChat;
+    this.tmpl          = KultTarot.TEMPLATES[readingType];
+    this.flipped       = new Set();
+    this._resolvedImgs = null;
   }
 
-  async getData() {
-    // Resolve images once and cache
+  async _buildContent() {
     if (!this._resolvedImgs) {
       this._resolvedImgs = await Promise.all(
         this.drawnCards.map(({ card }) => resolveCardImage(card))
       );
     }
-    return {
-      readingName: this.tmpl.name,
-      question:    this.question,
-      isSingle:    this.readingType === "single",
-      cards: this.drawnCards.map(({ card, position }, i) => ({
-        card, position,
-        img:      this._resolvedImgs[i],
-        revealed: this.flipped.has(position.slot),
-      })),
-    };
-  }
 
-  async _renderInner(data) {
-    const { readingName, question, cards, isSingle } = data;
+    const isSingle = this.readingType === "single";
+    const cards = this.drawnCards.map(({ card, position }, i) => ({
+      card, position,
+      img:      this._resolvedImgs[i],
+      revealed: this.flipped.has(position.slot),
+    }));
 
     const cardHTML = ({ card, position, img, revealed }) => `
       <div class="kult-card-slot ${revealed ? "revealed" : "face-down"}"
-           data-slot="${position.slot}" title="Click to reveal: ${position.label}">
+           data-slot="${position.slot}"
+           title="${revealed ? card.name : "Click to reveal: " + position.label}">
         <div class="kult-card-inner">
           <div class="kult-card-front">
             <img src="${img}" alt="${card.name}"
@@ -208,28 +201,27 @@ class KultTarotReadingApp extends Application {
             <div class="kult-card-position-label">${position.label}</div>
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
 
-    // Star layout: centre, left, top, right, bottom
-    // drawnCards order: [0]=centre, [1]=left, [2]=top, [3]=right, [4]=bottom
     const layoutHTML = isSingle
       ? `<div class="kult-layout kult-layout-single">${cardHTML(cards[0])}</div>`
       : `<div class="kult-layout kult-layout-star">
-           <div class="kult-star-slot kult-star-top">    ${cardHTML(cards[2])}</div>
+           <div class="kult-star-slot kult-star-top">${cardHTML(cards[2])}</div>
            <div class="kult-star-row">
-             <div class="kult-star-slot kult-star-left">  ${cardHTML(cards[1])}</div>
+             <div class="kult-star-slot kult-star-left">${cardHTML(cards[1])}</div>
              <div class="kult-star-slot kult-star-center">${cardHTML(cards[0])}</div>
-             <div class="kult-star-slot kult-star-right"> ${cardHTML(cards[3])}</div>
+             <div class="kult-star-slot kult-star-right">${cardHTML(cards[3])}</div>
            </div>
-           <div class="kult-star-slot kult-star-bottom">  ${cardHTML(cards[4])}</div>
+           <div class="kult-star-slot kult-star-bottom">${cardHTML(cards[4])}</div>
          </div>`;
 
-    const html = `
+    return `
       <div class="kult-tarot-reading">
         <div class="kult-reading-header">
-          <h2>${readingName} Reading</h2>
-          ${question ? `<blockquote class="kult-question">"${question}"</blockquote>` : ""}
+          <h2>${this.tmpl.name} Reading</h2>
+          ${this.question
+            ? `<blockquote class="kult-question">"${this.question}"</blockquote>`
+            : ""}
           <div class="kult-reading-controls">
             <button class="kult-btn kult-reveal-all">
               <i class="fas fa-eye"></i> Reveal All
@@ -248,17 +240,26 @@ class KultTarotReadingApp extends Application {
           <textarea class="kult-notes-area"
             placeholder="Write your interpretation here..."></textarea>
         </div>
-      </div>
-    `;
-    const wrapper = document.createElement("div");
-    wrapper.innerHTML = html;
-    return $(wrapper);
+      </div>`;
+  }
+
+  // v13 appv1 render hook
+  async _renderHTML(_context, _options) {
+    const content = await this._buildContent();
+    const div = document.createElement("div");
+    div.innerHTML = content;
+    return div;
+  }
+
+  // Legacy Application fallback
+  async _renderInner(_data) {
+    const content = await this._buildContent();
+    return $(content);
   }
 
   activateListeners(html) {
     super.activateListeners(html);
 
-    // Click face-down card to reveal
     html.find(".kult-card-slot.face-down").on("click", (ev) => {
       const slot = parseInt(ev.currentTarget.dataset.slot);
       this.flipped.add(slot);
@@ -300,12 +301,17 @@ class KultTarotReadingApp extends Application {
 
   async render(force, options) {
     const result = await super.render(force, options);
-    if (this.postToChat) await this._postToChat();
+    if (this.postToChat) {
+      this.postToChat = false; // only fire once
+      await this._postToChat();
+    }
     return result;
   }
 }
 
-// ── Main reader ───────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// MAIN READER
+// ─────────────────────────────────────────────────────────────────
 class KultTarotReader {
   static performReading(type, question = "", postToChat = false) {
     const template = KultTarot.TEMPLATES[type];
@@ -314,7 +320,7 @@ class KultTarotReader {
       return;
     }
     const shuffled = shuffleDeck(KultTarot.DECK);
-    const drawn = template.positions.map((position, i) => ({
+    const drawn    = template.positions.map((position, i) => ({
       card: shuffled[i],
       position,
     }));
@@ -326,8 +332,8 @@ class KultTarotReader {
   }
 }
 
-// Expose
-globalThis.KultTarot = globalThis.KultTarot || {};
-globalThis.KultTarot.Reader       = KultTarotReader;
+// Expose globally
+globalThis.KultTarot                = globalThis.KultTarot || {};
+globalThis.KultTarot.Reader         = KultTarotReader;
 globalThis.KultTarot.SelectorDialog = KultTarotSelectorDialog;
-globalThis.KultTarot.ReadingApp   = KultTarotReadingApp;
+globalThis.KultTarot.ReadingApp     = KultTarotReadingApp;
