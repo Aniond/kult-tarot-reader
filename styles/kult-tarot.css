@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   KULT TAROT READER — Stylesheet
+   KULT TAROT READER — Stylesheet  v1.01
    Dark gothic aesthetic matching Kult: Divinity Lost
 ═══════════════════════════════════════════════════════ */
 
@@ -13,8 +13,10 @@
   --kult-gold:      #c8a951;
   --kult-text:      #d4ccc0;
   --kult-muted:     #7a7060;
-  --kult-card-w:    140px;
-  --kult-card-h:    220px;
+  --kult-card-w:    130px;
+  --kult-card-h:    210px;
+  --kult-card-w-lg: 150px;
+  --kult-card-h-lg: 240px;
   --kult-radius:    6px;
   --transition:     0.45s ease;
 }
@@ -157,6 +159,7 @@
 .kult-tarot-reading-window .window-content {
   background: var(--kult-dark);
   padding: 12px;
+  overflow-y: auto;
 }
 
 .kult-tarot-reading {
@@ -218,44 +221,71 @@
   color: #fff;
 }
 
-/* ── STAR LAYOUT ──────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   STAR LAYOUT
+   Strict 3×3 CSS grid with named areas.
+   Only 5 cells are populated; corners are intentionally empty.
+
+   Grid areas:
+     .    [3]   .
+    [2]   [1]  [4]
+     .    [5]   .
+
+   Card 1 = centre (core)
+   Card 2 = left
+   Card 3 = top
+   Card 4 = right
+   Card 5 = bottom
+══════════════════════════════════════════════════════════ */
 
 .kult-layout-star {
   display: grid;
   grid-template-areas:
-    ".      top    ."
-    "left   center right"
-    ".      bottom .";
-  grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: auto auto auto;
-  gap: 16px;
-  justify-items: center;
+    ". top    ."
+    "left center right"
+    ". bottom .";
+  grid-template-columns: var(--kult-card-w) var(--kult-card-w-lg) var(--kult-card-w);
+  grid-template-rows:    var(--kult-card-h) var(--kult-card-h-lg) var(--kult-card-h);
+  gap: 12px;
+  justify-content: center;
   align-items: center;
-  padding: 8px;
+  padding: 8px 0;
+  /* prevent the layout from being wider than the window */
+  margin: 0 auto;
 }
 
-.kult-star-center { grid-area: center; }
-.kult-star-left   { grid-area: left; }
-.kult-star-top    { grid-area: top; }
-.kult-star-right  { grid-area: right; }
-.kult-star-bottom { grid-area: bottom; }
+.kult-star-top    { grid-area: top;    justify-self: center; align-self: end;    }
+.kult-star-left   { grid-area: left;   justify-self: end;    align-self: center; }
+.kult-star-center { grid-area: center; justify-self: center; align-self: center; }
+.kult-star-right  { grid-area: right;  justify-self: start;  align-self: center; }
+.kult-star-bottom { grid-area: bottom; justify-self: center; align-self: start;  }
 
 /* ── SINGLE LAYOUT ────────────────────────────────────── */
 
 .kult-layout-single {
   display: flex;
   justify-content: center;
-  padding: 16px;
+  padding: 24px 0;
 }
 
-/* ── CARD SLOT + FLIP ANIMATION ───────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   CARD SLOT — flip animation
+══════════════════════════════════════════════════════════ */
 
+/* Default (outer and inner) card slots use the standard size */
 .kult-card-slot {
   width: var(--kult-card-w);
   height: var(--kult-card-h);
-  perspective: 800px;
+  perspective: 900px;
   cursor: pointer;
   position: relative;
+  flex-shrink: 0;
+}
+
+/* Centre card is larger — the "core" card */
+.kult-star-center .kult-card-slot {
+  width: var(--kult-card-w-lg);
+  height: var(--kult-card-h-lg);
 }
 
 .kult-card-inner {
@@ -263,16 +293,16 @@
   height: 100%;
   position: relative;
   transform-style: preserve-3d;
-  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transition: transform 0.55s cubic-bezier(0.4, 0.2, 0.2, 1);
   border-radius: var(--kult-radius);
 }
 
-/* Face-down: show back */
+/* Face-down: back visible */
 .kult-card-slot.face-down .kult-card-inner {
   transform: rotateY(180deg);
 }
 
-/* Revealed: show front (no rotation) */
+/* Revealed: front visible */
 .kult-card-slot.revealed .kult-card-inner {
   transform: rotateY(0deg);
 }
@@ -303,10 +333,12 @@
   align-items: center;
   justify-content: center;
   border: 2px solid var(--kult-red);
+  gap: 8px;
 }
 
-/* Hover glow */
-.kult-card-slot:hover .kult-card-inner {
+/* Hover effects */
+.kult-card-slot:hover .kult-card-front,
+.kult-card-slot.revealed:hover .kult-card-inner .kult-card-front {
   border-color: var(--kult-gold);
 }
 
@@ -314,85 +346,83 @@
   border-color: var(--kult-red-bright);
 }
 
-.kult-card-slot.face-down .kult-card-back::before {
-  content: "✦";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -70%);
-  font-size: 2em;
+/* Card back decoration */
+.kult-back-symbol {
+  font-size: 2.2em;
   color: var(--kult-red);
-  opacity: 0.5;
+  opacity: 0.6;
+  line-height: 1;
 }
 
-/* Card images */
-.kult-card-front img,
-.kult-card-back img {
+.kult-card-position-label {
+  font-size: 0.65em;
+  color: var(--kult-muted);
+  text-align: center;
+  padding: 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+}
+
+/* Centre card back gets gold border */
+.kult-star-center .kult-card-back {
+  border-color: var(--kult-gold);
+}
+
+.kult-star-center .kult-back-symbol {
+  font-size: 2.8em;
+  opacity: 0.8;
+}
+
+/* Card front content */
+.kult-card-front img {
   width: 100%;
-  height: 65%;
+  height: 62%;
   object-fit: cover;
-  object-position: top;
+  object-position: top center;
   display: block;
+  border-bottom: 1px solid var(--kult-border);
 }
 
 .kult-card-info {
-  padding: 5px 6px;
+  padding: 5px 6px 4px;
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  overflow: hidden;
 }
 
 .kult-card-position {
-  font-size: 0.65em;
+  font-size: 0.6em;
   color: var(--kult-red);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kult-card-name {
-  font-size: 0.78em;
+  font-size: 0.75em;
   color: var(--kult-gold);
   font-weight: bold;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kult-card-meaning {
-  font-size: 0.65em;
+  font-size: 0.62em;
   color: var(--kult-muted);
   font-style: italic;
-  line-height: 1.3;
+  line-height: 1.35;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
-}
-
-.kult-card-back img {
-  height: 70%;
-  opacity: 0.4;
-  object-fit: cover;
-}
-
-.kult-card-position-label {
-  font-size: 0.7em;
-  color: var(--kult-red);
-  text-align: center;
-  padding: 6px 4px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-/* ── CENTER CARD: slightly larger ─────────────────────── */
-.kult-star-center .kult-card-slot {
-  width: calc(var(--kult-card-w) * 1.15);
-  height: calc(var(--kult-card-h) * 1.15);
-}
-
-.kult-star-center .kult-card-front,
-.kult-star-center .kult-card-back {
-  border-color: var(--kult-gold);
 }
 
 /* ── GM NOTES ─────────────────────────────────────────── */
@@ -466,4 +496,146 @@
 
 .kult-chat-reading li {
   margin-bottom: 4px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   GM INTERPRETATION TABLE
+   Shown below the star layout.
+   Rows start hidden and reveal as cards are flipped.
+══════════════════════════════════════════════════════════ */
+
+.kult-interp-section {
+  border-top: 1px solid var(--kult-border);
+  padding-top: 12px;
+}
+
+.kult-interp-heading {
+  color: var(--kult-gold);
+  font-size: 0.95em;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 10px;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kult-interp-heading i {
+  color: var(--kult-red);
+}
+
+.kult-interp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Georgia", serif;
+  font-size: 0.82em;
+}
+
+.kult-interp-table thead tr {
+  background: var(--kult-bg);
+  border-bottom: 2px solid var(--kult-red);
+}
+
+.kult-interp-table th {
+  color: var(--kult-red);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 0.78em;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+/* Column widths */
+.kult-interp-table th:nth-child(1),
+.kult-interp-table td:nth-child(1) { width: 28px;  text-align: center; }
+.kult-interp-table th:nth-child(2),
+.kult-interp-table td:nth-child(2) { width: 140px; }
+.kult-interp-table th:nth-child(3),
+.kult-interp-table td:nth-child(3) { width: 200px; }
+.kult-interp-table th:nth-child(4),
+.kult-interp-table td:nth-child(4) { width: 130px; }
+.kult-interp-table th:nth-child(5),
+.kult-interp-table td:nth-child(5) { width: auto;  }
+
+.kult-interp-row {
+  border-bottom: 1px solid var(--kult-border);
+  transition: background var(--transition);
+}
+
+.kult-interp-row:nth-child(even) {
+  background: var(--kult-bg2);
+}
+
+.kult-interp-row td {
+  padding: 7px 8px;
+  vertical-align: top;
+  color: var(--kult-text);
+  line-height: 1.4;
+}
+
+/* Slot number badge */
+.kult-interp-num {
+  color: var(--kult-gold) !important;
+  font-weight: bold;
+  font-size: 1em;
+}
+
+/* Position label */
+.kult-interp-label {
+  color: var(--kult-gold) !important;
+  font-weight: bold;
+}
+
+/* Rule question — slightly muted, italic */
+.kult-interp-question {
+  color: var(--kult-muted) !important;
+  font-style: italic;
+}
+
+/* Card name + suit */
+.kult-interp-card strong {
+  color: var(--kult-text);
+  font-size: 0.95em;
+}
+
+.kult-interp-suit {
+  color: var(--kult-red);
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Placeholder while card is face-down */
+.kult-interp-hidden {
+  color: var(--kult-border);
+  font-style: italic;
+  font-size: 0.85em;
+}
+
+/* Meaning column */
+.kult-interp-meaning {
+  color: var(--kult-muted) !important;
+  font-size: 0.9em;
+}
+
+/* Hidden rows are dimmed; revealed rows glow slightly */
+.kult-interp-row.is-hidden {
+  opacity: 0.4;
+}
+
+.kult-interp-row.is-revealed {
+  opacity: 1;
+}
+
+.kult-interp-row.is-revealed .kult-interp-label {
+  color: var(--kult-gold) !important;
+}
+
+/* Highlight the centre card row (slot 1) */
+.kult-interp-row[data-slot="1"].is-revealed {
+  background: #1e1010 !important;
+  border-left: 3px solid var(--kult-gold);
 }

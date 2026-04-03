@@ -180,6 +180,7 @@ class KultTarotReadingApp extends _Application {
       revealed: this.flipped.has(position.slot),
     }));
 
+    // ── Individual card HTML (front + back) ──────────────────────
     const cardHTML = ({ card, position, img, revealed }) => `
       <div class="kult-card-slot ${revealed ? "revealed" : "face-down"}"
            data-slot="${position.slot}"
@@ -203,17 +204,36 @@ class KultTarotReadingApp extends _Application {
         </div>
       </div>`;
 
+    // ── Star / single layout ──────────────────────────────────────
     const layoutHTML = isSingle
       ? `<div class="kult-layout kult-layout-single">${cardHTML(cards[0])}</div>`
       : `<div class="kult-layout kult-layout-star">
-           <div class="kult-star-slot kult-star-top">${cardHTML(cards[2])}</div>
-           <div class="kult-star-row">
-             <div class="kult-star-slot kult-star-left">${cardHTML(cards[1])}</div>
-             <div class="kult-star-slot kult-star-center">${cardHTML(cards[0])}</div>
-             <div class="kult-star-slot kult-star-right">${cardHTML(cards[3])}</div>
-           </div>
-           <div class="kult-star-slot kult-star-bottom">${cardHTML(cards[4])}</div>
+           <div class="kult-star-top">${cardHTML(cards[2])}</div>
+           <div class="kult-star-left">${cardHTML(cards[1])}</div>
+           <div class="kult-star-center">${cardHTML(cards[0])}</div>
+           <div class="kult-star-right">${cardHTML(cards[3])}</div>
+           <div class="kult-star-bottom">${cardHTML(cards[4])}</div>
          </div>`;
+
+    // ── GM Interpretation table ───────────────────────────────────
+    // One row per card: slot number | position label | rule question |
+    // card drawn | suit | card meaning
+    const tableRows = cards.map(({ card, position, revealed }) => `
+      <tr class="kult-interp-row ${revealed ? "is-revealed" : "is-hidden"}"
+          data-slot="${position.slot}">
+        <td class="kult-interp-num">${position.slot}</td>
+        <td class="kult-interp-label">${position.label}</td>
+        <td class="kult-interp-question">${position.description}</td>
+        <td class="kult-interp-card">
+          ${revealed
+            ? `<strong>${card.name}</strong><br>
+               <span class="kult-interp-suit">${card.suit}</span>`
+            : `<span class="kult-interp-hidden">— face down —</span>`}
+        </td>
+        <td class="kult-interp-meaning">
+          ${revealed ? card.meaning : ""}
+        </td>
+      </tr>`).join("");
 
     return `
       <div class="kult-tarot-reading">
@@ -234,7 +254,29 @@ class KultTarotReadingApp extends _Application {
             </button>
           </div>
         </div>
+
         ${layoutHTML}
+
+        <div class="kult-interp-section">
+          <h3 class="kult-interp-heading">
+            <i class="fas fa-scroll"></i> Card Interpretations
+          </h3>
+          <table class="kult-interp-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Position</th>
+                <th>The Question (per the Rules)</th>
+                <th>Card Drawn</th>
+                <th>Meaning</th>
+              </tr>
+            </thead>
+            <tbody class="kult-interp-tbody">
+              ${tableRows}
+            </tbody>
+          </table>
+        </div>
+
         <div class="kult-reading-notes">
           <label><strong>GM Notes:</strong></label>
           <textarea class="kult-notes-area"
@@ -243,7 +285,7 @@ class KultTarotReadingApp extends _Application {
       </div>`;
   }
 
-  // v13 appv1 render hook
+    // v13 appv1 render hook
   async _renderHTML(_context, _options) {
     const content = await this._buildContent();
     const div = document.createElement("div");
@@ -257,6 +299,20 @@ class KultTarotReadingApp extends _Application {
     return $(content);
   }
 
+  // Update a single table row once its card is revealed
+  _revealTableRow(html, slot) {
+    const entry = this.drawnCards.find(({ position }) => position.slot === slot);
+    if (!entry) return;
+    const { card, position } = entry;
+    const row = html.find(`.kult-interp-row[data-slot="${slot}"]`);
+    row.removeClass("is-hidden").addClass("is-revealed");
+    row.find(".kult-interp-card").html(
+      `<strong>${card.name}</strong><br>
+       <span class="kult-interp-suit">${card.suit}</span>`
+    );
+    row.find(".kult-interp-meaning").text(card.meaning);
+  }
+
   activateListeners(html) {
     super.activateListeners(html);
 
@@ -264,10 +320,14 @@ class KultTarotReadingApp extends _Application {
       const slot = parseInt(ev.currentTarget.dataset.slot);
       this.flipped.add(slot);
       $(ev.currentTarget).removeClass("face-down").addClass("revealed");
+      this._revealTableRow(html, slot);
     });
 
     html.find(".kult-reveal-all").on("click", () => {
-      this.drawnCards.forEach(({ position }) => this.flipped.add(position.slot));
+      this.drawnCards.forEach(({ position }) => {
+        this.flipped.add(position.slot);
+        this._revealTableRow(html, position.slot);
+      });
       html.find(".kult-card-slot").removeClass("face-down").addClass("revealed");
     });
 
@@ -319,11 +379,21 @@ class KultTarotReader {
       ui.notifications.error(`Kult Tarot: Unknown reading type "${type}"`);
       return;
     }
+
+    // Per the rules: star readings always draw exactly 5 cards.
+    // Single-card draws get exactly 1. Never more, never less.
+    const expectedCount = type === "single" ? 1 : 5;
+    if (template.positions.length !== expectedCount) {
+      console.error(`Kult Tarot Reader | Template "${type}" has ${template.positions.length} positions, expected ${expectedCount}.`);
+      return;
+    }
+
     const shuffled = shuffleDeck(KultTarot.DECK);
     const drawn    = template.positions.map((position, i) => ({
       card: shuffled[i],
       position,
     }));
+
     new KultTarotReadingApp(type, drawn, question, postToChat).render(true);
   }
 
