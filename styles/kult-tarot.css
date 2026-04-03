@@ -1,0 +1,469 @@
+/* ═══════════════════════════════════════════════════════
+   KULT TAROT READER — Stylesheet
+   Dark gothic aesthetic matching Kult: Divinity Lost
+═══════════════════════════════════════════════════════ */
+
+:root {
+  --kult-red:       #8B0000;
+  --kult-red-bright:#c0392b;
+  --kult-dark:      #0d0d0d;
+  --kult-bg:        #1a1a1a;
+  --kult-bg2:       #222222;
+  --kult-border:    #3a2020;
+  --kult-gold:      #c8a951;
+  --kult-text:      #d4ccc0;
+  --kult-muted:     #7a7060;
+  --kult-card-w:    140px;
+  --kult-card-h:    220px;
+  --kult-radius:    6px;
+  --transition:     0.45s ease;
+}
+
+/* ── SELECTOR DIALOG ──────────────────────────────────── */
+
+.kult-tarot-selector {
+  font-family: "Georgia", serif;
+  background: var(--kult-dark);
+  color: var(--kult-text);
+  padding: 12px 4px;
+}
+
+.kult-tarot-header {
+  text-align: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--kult-red);
+  padding-bottom: 10px;
+}
+
+.kult-tarot-header h2 {
+  color: var(--kult-red);
+  font-size: 1.3em;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 4px;
+  border: none;
+}
+
+.kult-tarot-header p {
+  color: var(--kult-muted);
+  font-size: 0.85em;
+  margin: 0;
+  font-style: italic;
+}
+
+.kult-reading-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.kult-reading-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--kult-border);
+  border-radius: var(--kult-radius);
+  background: var(--kult-bg2);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.kult-reading-option:has(input:checked) {
+  border-color: var(--kult-red);
+  background: #2a1010;
+}
+
+.kult-reading-option input[type="radio"] {
+  margin-top: 3px;
+  accent-color: var(--kult-red);
+  cursor: pointer;
+}
+
+.kult-reading-option label {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kult-reading-option label strong {
+  color: var(--kult-gold);
+  font-size: 0.9em;
+}
+
+.kult-reading-desc {
+  color: var(--kult-muted);
+  font-size: 0.76em;
+  font-style: italic;
+  line-height: 1.3;
+}
+
+.kult-question-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.kult-question-box label {
+  color: var(--kult-text);
+  font-size: 0.85em;
+}
+
+.kult-question-box textarea {
+  background: var(--kult-bg2);
+  border: 1px solid var(--kult-border);
+  border-radius: var(--kult-radius);
+  color: var(--kult-text);
+  padding: 6px 8px;
+  font-family: "Georgia", serif;
+  font-size: 0.85em;
+  resize: vertical;
+}
+
+.kult-question-box textarea:focus {
+  outline: none;
+  border-color: var(--kult-red);
+}
+
+.kult-post-to-chat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82em;
+  color: var(--kult-muted);
+}
+
+.kult-post-to-chat input {
+  accent-color: var(--kult-red);
+}
+
+/* ── READING WINDOW ───────────────────────────────────── */
+
+.kult-tarot-reading-window {
+  background: var(--kult-dark) !important;
+  border: 1px solid var(--kult-red) !important;
+  color: var(--kult-text);
+}
+
+.kult-tarot-reading-window .window-header {
+  background: var(--kult-bg) !important;
+  border-bottom: 1px solid var(--kult-red);
+  color: var(--kult-red) !important;
+}
+
+.kult-tarot-reading-window .window-content {
+  background: var(--kult-dark);
+  padding: 12px;
+}
+
+.kult-tarot-reading {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-family: "Georgia", serif;
+}
+
+.kult-reading-header {
+  text-align: center;
+  border-bottom: 1px solid var(--kult-border);
+  padding-bottom: 10px;
+}
+
+.kult-reading-header h2 {
+  color: var(--kult-red);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 1.3em;
+  margin: 0 0 6px;
+  border: none;
+}
+
+.kult-question {
+  color: var(--kult-muted);
+  font-style: italic;
+  font-size: 0.9em;
+  border-left: 2px solid var(--kult-red);
+  margin: 6px auto;
+  max-width: 500px;
+  padding-left: 10px;
+  text-align: left;
+}
+
+.kult-reading-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.kult-btn {
+  background: var(--kult-bg2);
+  border: 1px solid var(--kult-border);
+  color: var(--kult-text);
+  border-radius: var(--kult-radius);
+  padding: 5px 12px;
+  font-family: "Georgia", serif;
+  font-size: 0.82em;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.kult-btn:hover {
+  background: var(--kult-red);
+  border-color: var(--kult-red-bright);
+  color: #fff;
+}
+
+/* ── STAR LAYOUT ──────────────────────────────────────── */
+
+.kult-layout-star {
+  display: grid;
+  grid-template-areas:
+    ".      top    ."
+    "left   center right"
+    ".      bottom .";
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: auto auto auto;
+  gap: 16px;
+  justify-items: center;
+  align-items: center;
+  padding: 8px;
+}
+
+.kult-star-center { grid-area: center; }
+.kult-star-left   { grid-area: left; }
+.kult-star-top    { grid-area: top; }
+.kult-star-right  { grid-area: right; }
+.kult-star-bottom { grid-area: bottom; }
+
+/* ── SINGLE LAYOUT ────────────────────────────────────── */
+
+.kult-layout-single {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
+
+/* ── CARD SLOT + FLIP ANIMATION ───────────────────────── */
+
+.kult-card-slot {
+  width: var(--kult-card-w);
+  height: var(--kult-card-h);
+  perspective: 800px;
+  cursor: pointer;
+  position: relative;
+}
+
+.kult-card-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+  border-radius: var(--kult-radius);
+}
+
+/* Face-down: show back */
+.kult-card-slot.face-down .kult-card-inner {
+  transform: rotateY(180deg);
+}
+
+/* Revealed: show front (no rotation) */
+.kult-card-slot.revealed .kult-card-inner {
+  transform: rotateY(0deg);
+}
+
+.kult-card-front,
+.kult-card-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: var(--kult-radius);
+  overflow: hidden;
+  border: 2px solid var(--kult-border);
+  transition: border-color var(--transition);
+}
+
+.kult-card-front {
+  background: var(--kult-bg2);
+  display: flex;
+  flex-direction: column;
+}
+
+.kult-card-back {
+  background: var(--kult-bg);
+  transform: rotateY(180deg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--kult-red);
+}
+
+/* Hover glow */
+.kult-card-slot:hover .kult-card-inner {
+  border-color: var(--kult-gold);
+}
+
+.kult-card-slot.face-down:hover .kult-card-back {
+  border-color: var(--kult-red-bright);
+}
+
+.kult-card-slot.face-down .kult-card-back::before {
+  content: "✦";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -70%);
+  font-size: 2em;
+  color: var(--kult-red);
+  opacity: 0.5;
+}
+
+/* Card images */
+.kult-card-front img,
+.kult-card-back img {
+  width: 100%;
+  height: 65%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+}
+
+.kult-card-info {
+  padding: 5px 6px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kult-card-position {
+  font-size: 0.65em;
+  color: var(--kult-red);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: bold;
+}
+
+.kult-card-name {
+  font-size: 0.78em;
+  color: var(--kult-gold);
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+.kult-card-meaning {
+  font-size: 0.65em;
+  color: var(--kult-muted);
+  font-style: italic;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.kult-card-back img {
+  height: 70%;
+  opacity: 0.4;
+  object-fit: cover;
+}
+
+.kult-card-position-label {
+  font-size: 0.7em;
+  color: var(--kult-red);
+  text-align: center;
+  padding: 6px 4px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── CENTER CARD: slightly larger ─────────────────────── */
+.kult-star-center .kult-card-slot {
+  width: calc(var(--kult-card-w) * 1.15);
+  height: calc(var(--kult-card-h) * 1.15);
+}
+
+.kult-star-center .kult-card-front,
+.kult-star-center .kult-card-back {
+  border-color: var(--kult-gold);
+}
+
+/* ── GM NOTES ─────────────────────────────────────────── */
+
+.kult-reading-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid var(--kult-border);
+  padding-top: 10px;
+}
+
+.kult-reading-notes label {
+  color: var(--kult-text);
+  font-size: 0.85em;
+}
+
+.kult-notes-area {
+  background: var(--kult-bg2);
+  border: 1px solid var(--kult-border);
+  border-radius: var(--kult-radius);
+  color: var(--kult-text);
+  font-family: "Georgia", serif;
+  font-size: 0.85em;
+  padding: 6px 8px;
+  min-height: 60px;
+  resize: vertical;
+}
+
+.kult-notes-area:focus {
+  outline: none;
+  border-color: var(--kult-red);
+}
+
+/* ── SIDEBAR BUTTON ───────────────────────────────────── */
+
+.kult-tarot-sidebar-btn {
+  background: var(--kult-red) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: var(--kult-radius) !important;
+  font-size: 0.82em !important;
+  padding: 4px 10px !important;
+  cursor: pointer !important;
+  margin-left: 4px;
+  transition: background var(--transition) !important;
+}
+
+.kult-tarot-sidebar-btn:hover {
+  background: var(--kult-red-bright) !important;
+}
+
+/* ── CHAT MESSAGE ─────────────────────────────────────── */
+
+.kult-chat-reading {
+  font-family: "Georgia", serif;
+  font-size: 0.88em;
+}
+
+.kult-chat-reading h3 {
+  margin: 0 0 8px;
+  font-size: 1em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.kult-chat-reading ul {
+  margin: 6px 0;
+  line-height: 1.6;
+}
+
+.kult-chat-reading li {
+  margin-bottom: 4px;
+}
